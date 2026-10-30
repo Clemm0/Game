@@ -1,4 +1,4 @@
-re# Tags:
+# Tags:
 ### _RPG, Roguelite, Dungeon Crawler, Looter, Open World, Lite MMO_
 
 # Lore
