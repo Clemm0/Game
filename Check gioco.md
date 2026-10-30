@@ -1,0 +1,31 @@
+
+# Done Checklist
+- [ ] Races
+	- [ ] Commoner
+	- [ ] Theif
+- [ ] Classes
+	- [ ] Tank
+	- [ ] Warrior
+	- [ ] Mage
+	- [ ] Healer
+	- [ ] Cleric
+	- [ ] Necromant
+	- [ ] Guardian
+	- [ ] Rogue
+	- [ ] Ranger
+	- [ ] Balanced
+- [ ] Dungeons
+	- [ ] Placeholder
+- [ ] Biomes
+	- [ ] Plains
+	- [ ] Icy Peaks
+- [ ] Rarities
+	- [ ] Common
+	- [ ] Uncommon
+	- [ ] Rare
+	- [ ] Epic
+	- [ ] Legendary
+	- [ ] Elite
+- [ ] NPCS
+	- [ ] Placeholder
+- [ ] 
