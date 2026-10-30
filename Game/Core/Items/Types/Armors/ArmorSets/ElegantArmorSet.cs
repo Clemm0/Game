@@ -3,7 +3,6 @@ using Game.Core.Rpg;
 
 namespace Game.Core.Items.Types.Armors.ArmorSets;
 
-/// <summary>4-slot elegant: diadem, chest, legs, feet. Social/CHA oriented.</summary>
 public class ElegantArmorSet : ArmorSet
 {
     public ElegantArmorSet(Material material)

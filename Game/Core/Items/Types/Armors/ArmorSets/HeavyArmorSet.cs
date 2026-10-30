@@ -3,7 +3,6 @@ using Game.Core.Rpg;
 
 namespace Game.Core.Items.Types.Armors.ArmorSets;
 
-/// <summary>5-slot heavy set: helm, chest, arms, legs, gauntlets.</summary>
 public class HeavyArmorSet : ArmorSet
 {
     public HeavyArmorSet(Material material)

@@ -3,7 +3,6 @@ using Game.Core.Rpg;
 
 namespace Game.Core.Items.Types.Armors.ArmorSets;
 
-/// <summary>5-slot blacksmith: heavy helm, apron (chest), arms, legs, gauntlets.</summary>
 public class BlacksmithsArmorSet : ArmorSet
 {
     public BlacksmithsArmorSet(Material material)

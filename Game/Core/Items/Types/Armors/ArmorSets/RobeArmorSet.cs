@@ -3,7 +3,6 @@ using Game.Core.Rpg;
 
 namespace Game.Core.Items.Types.Armors.ArmorSets;
 
-/// <summary>4-slot robe: cowl, chest, arms, legs. No gauntlets, no metal helm.</summary>
 public class RobeArmorSet : ArmorSet
 {
     public RobeArmorSet(Material material, string headKind = "Cowl")

@@ -3,7 +3,6 @@ using Game.Core.Rpg;
 
 namespace Game.Core.Items.Types.Armors.ArmorSets;
 
-/// <summary>4-slot daily: hat, chest, legs, feet. Cheap, no combat focus.</summary>
 public class DailyArmorSet : ArmorSet
 {
     public DailyArmorSet(Material material)
