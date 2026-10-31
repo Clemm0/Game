@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Game.Core.Generic;
 
 namespace Game.Core.Rpg;
 

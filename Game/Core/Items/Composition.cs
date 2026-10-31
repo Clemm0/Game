@@ -26,7 +26,9 @@ public class Composition
     {
         float total = 0f;
         foreach (var slot in _slots)
+        {
             total += slot.Material.WeightPerUnit * slot.Part.MaterialUnits;
+        }
         return total;
     }
 

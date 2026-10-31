@@ -1,3 +1,4 @@
+using System;
 using Game.Core.Items.Parts;
 using Game.Core.Items.Materials;
 using Game.Core.Rpg;
@@ -6,10 +7,14 @@ namespace Game.Core.Items;
 
 public abstract class Item
 {
-    public string Name { get; protected set; } = string.Empty;
-    public Rarity Rarity { get; protected set; } = Rarity.Common;
-    public float Quality { get; protected set; }
-    public ItemModifier Modifier { get; protected set; } = ItemModifier.Used;
+    public string Id { get; protected set; } = Guid.NewGuid().ToString();
+    public string TemplateId { get; internal set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public Rarity Rarity { get; internal set; } = Rarity.Common;
+    public float Quality { get; internal set; }
+    public ItemModifier Modifier { get; internal set; }
+    
+    public virtual float Weight => Composition.TotalWeight(); 
 
     public Composition Composition { get; } = new();
 
@@ -17,7 +22,4 @@ public abstract class Item
 
     public virtual void Degrade(float amount)
         => Quality = System.Math.Clamp(Quality - amount, 0f, 1f);
-
-    protected void AttachPart(ItemPart part, Material material)
-        => Composition.AddPart(part, material);
 }

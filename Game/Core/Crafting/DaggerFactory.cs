@@ -1,7 +1,6 @@
 using Game.Core.Items;
 using Game.Core.Items.Materials;
 using Game.Core.Items.Parts;
-using Game.Core.Items.Weapons;
 using Game.Core.Items.Types.Weapons.Melee;
 
 namespace Game.Core.Crafting;

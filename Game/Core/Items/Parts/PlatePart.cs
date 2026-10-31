@@ -8,7 +8,7 @@ public class PlatePart : ItemPart
     {
         Name = "Plate";
         Material = material;
-        MaterialUnits = 2;
+        MaterialUnits = 4;
     }
 
     public override bool Fits(Item host) => host is Types.Armor;

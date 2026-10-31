@@ -1,4 +1,5 @@
 using Game.Core.Items.Materials;
+using Game.Core.Rpg;
 
 namespace Game.Core.Items.Parts;
 
