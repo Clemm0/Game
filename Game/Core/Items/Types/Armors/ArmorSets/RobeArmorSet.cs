@@ -14,13 +14,15 @@ public class RobeArmorSet : ArmorSet
         AddPiece(new ChestPiece(Name), plateCount: 1);
         AddPiece(new ArmsPiece(Name), plateCount: 1);
         AddPiece(new LegsPiece(Name), plateCount: 1);
+
+        ArmorSetRegistry.Register(Name, 4, () => 
+        {
+            var s = new StatBlock();
+            s.SpellPower.PercentBonus += 0.08f;
+            s.Mana.BaseValue += 15f;
+            return s;
+        });
     }
 
-    public override StatBlock? SetBonus()
-    {
-        var s = new StatBlock();
-        s.SpellPower.PercentBonus += 0.08f;
-        s.Mana.BaseValue += 15f;
-        return s;
-    }
+    public override StatBlock? SetBonus() => null;
 }

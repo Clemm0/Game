@@ -17,13 +17,16 @@ public class HeavyArmorSet : ArmorSet
         AddPiece(new GauntletsPiece(Name), plateCount: 1);
 
         foreach (var p in Pieces.Values) p.Rarity = Rarity.Rare;
+
+        ArmorSetRegistry.Register(Name, 5, () => 
+        {
+            var s = new StatBlock();
+            s.Health.BaseValue += 50f;
+            s.Defense.PercentBonus += 0.10f;
+            s.MoveSpeed.PercentBonus -= 0.05f;
+            return s;
+        });
     }
 
-    public override StatBlock? SetBonus()
-    {
-        var s = new StatBlock();
-        s.Defense.PercentBonus += 0.10f;
-        s.MoveSpeed.PercentBonus -= 0.05f;
-        return s;
-    }
+    public override StatBlock? SetBonus() => null;
 }

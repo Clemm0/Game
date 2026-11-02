@@ -17,12 +17,15 @@ public class LightArmorSet : ArmorSet
         AddPiece(new GauntletsPiece(Name), plateCount: 1);
 
         foreach (var p in Pieces.Values) p.Rarity = Rarity.Uncommon;
+
+        ArmorSetRegistry.Register(Name, 5, () => 
+        {
+            var s = new StatBlock();
+            s.MoveSpeed.PercentBonus += 0.05f;
+            s.CritChance.BaseValue += 0.05f;
+            return s;
+        });
     }
 
-    public override StatBlock? SetBonus()
-    {
-        var s = new StatBlock();
-        s.MoveSpeed.PercentBonus += 0.05f;
-        return s;
-    }
+    public override StatBlock? SetBonus() => null;
 }

@@ -14,5 +14,14 @@ public class DailyArmorSet : ArmorSet
         AddPiece(new ChestPiece(Name), plateCount: 1);
         AddPiece(new LegsPiece(Name), plateCount: 1);
         AddPiece(new FeetPiece(Name), plateCount: 1);
+
+        ArmorSetRegistry.Register(Name, 4, () => 
+        {
+            var s = new StatBlock();
+            s.CarryCapacity.BaseValue += 10f;
+            return s;
+        });
     }
+
+    public override StatBlock? SetBonus() => null;
 }

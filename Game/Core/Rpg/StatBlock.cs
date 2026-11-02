@@ -3,19 +3,20 @@ using Game.Core.Generic;
 
 namespace Game.Core.Rpg;
 
-public enum PrimaryStat { STR, DEX, CON, INT, WIS, CHA }
-
 public class StatBlock
 {
     public Dictionary<PrimaryStat, GenericStat> Primary { get; } = new()
     {
-        [PrimaryStat.STR] = new GenericStat(),
-        [PrimaryStat.DEX] = new GenericStat(),
-        [PrimaryStat.CON] = new GenericStat(),
-        [PrimaryStat.INT] = new GenericStat(),
-        [PrimaryStat.WIS] = new GenericStat(),
-        [PrimaryStat.CHA] = new GenericStat(),
+        [PrimaryStat.STR] = new(),
+        [PrimaryStat.PER] = new(),
+        [PrimaryStat.END] = new(),
+        [PrimaryStat.CHA] = new(),
+        [PrimaryStat.INT] = new(),
+        [PrimaryStat.AGL] = new(),
+        [PrimaryStat.LUC] = new()
     };
+
+    public Dictionary<string, int> Skills { get; } = new();
 
     public GenericStat Health        { get; } = new();
     public GenericStat Stamina       { get; } = new();

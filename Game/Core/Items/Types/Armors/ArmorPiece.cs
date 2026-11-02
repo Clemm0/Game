@@ -13,7 +13,18 @@ public abstract class ArmorPiece : Armor
     {
         var stats = new StatBlock();
         var mult = RarityTable.Data[Rarity].MainStatMultiplier * Quality;
-        stats.Defense.BaseValue = BaseDefense * mult;
+        
+        float totalDefense = BaseDefense;
+        
+        foreach (var slot in Composition.Slots)
+        {
+            if (slot.Part is PlatePart)
+            {
+                totalDefense += 2f;
+            }
+        }
+
+        stats.Defense.BaseValue = totalDefense * mult;
         return ItemAggregator.Apply(this, stats);
     }
 
