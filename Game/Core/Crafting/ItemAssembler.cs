@@ -45,7 +45,7 @@ public static class ItemAssembler
         baseItem.Quality = quality;
         baseItem.Modifier = modifier;
 
-        baseItem.ResolveStats(); 
+        baseItem.RebuildPartId();
 
         return new AssemblyResult(baseItem, true, $"Successfully assembled {baseItem.Name}!");
     }

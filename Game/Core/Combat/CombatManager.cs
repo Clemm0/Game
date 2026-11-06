@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Game.Core.Rpg;
 using Game.Core.Rpg.Equipment;
 using Game.Core.Items.Types;
@@ -22,6 +23,9 @@ public class CombatManager
         
         while (_player.Health > 0 && _enemy.Health > 0)
         {
+            foreach (var skill in _player.Class.Skills) skill.Tick(2.0f);
+            foreach (var skill in _enemy.Class.Skills) skill.Tick(2.0f);
+
             PlayerTurn();
             if (_enemy.Health <= 0) break;
             
@@ -34,20 +38,33 @@ public class CombatManager
     private void PlayerTurn()
     {
         Console.WriteLine($"\n{_player.Name}'s Turn (HP: {_player.Health:F1})");
-        
+
+        var stats = _player.GetEffectiveStats();
+        if (_player.Health < stats.Health.Effective * 0.5f)
+        {
+            var potion = _player.Inventory.Items
+                .FirstOrDefault(i => i is Game.Core.Items.Types.Consumables.HealthPotion p && p.StackSize > 0) 
+                as Game.Core.Items.Types.Consumables.HealthPotion;
+            
+            if (potion != null)
+            {
+                potion.Use(_player);
+                if (potion.StackSize <= 0) _player.Inventory.TryRemoveItem(potion);
+                return;
+            }
+        }
+
+        var usableSkill = _player.Class.Skills.FirstOrDefault(s => s.IsReady);
+        if (usableSkill != null)
+        {
+            usableSkill.Activate(_player, _enemy);
+            return;
+        }
+
+        Console.WriteLine("  *No skills ready, basic attack!*");
         _player.Equipment.EquippedItems.TryGetValue(EquipmentSlot.MainHand, out var equippedItem);
         var weapon = equippedItem as Weapon;
-        
-        if (weapon == null)
-        {
-            Console.WriteLine("  *Punches wildly*");
-            Attack(_player, _enemy, 1, 3, "Fists"); 
-        }
-        else
-        {
-            Console.WriteLine($"  *Attacks with {weapon.Name}*");
-            Attack(_player, _enemy, 1, 8, weapon.Name);
-        }
+        Attack(_player, _enemy, 1, 8, weapon?.Name ?? "Fists");
     }
 
     private void EnemyTurn()
@@ -63,11 +80,17 @@ public class CombatManager
 
         int attackRoll = Dice.RollD20();
         int aglMod = (int)attackerStats.Primary[PrimaryStat.AGL].Effective;
-        int totalAttack = attackRoll + attacker.ProficiencyBonus + aglMod;
+        
+        int proficiencyBonus = 0;
+        if (attacker.Proficiencies.Contains(attackName) && attacker.BaseStats.Skills.TryGetValue(attackName, out int skillLevel))
+        {
+            proficiencyBonus = skillLevel;
+        }
 
+        int totalAttack = attackRoll + attacker.ProficiencyBonus + aglMod + proficiencyBonus;
         int targetAC = (int)defenderStats.Defense.Effective;
 
-        Console.WriteLine($"  -> Roll: {attackRoll} + {attacker.ProficiencyBonus}(Prof) + {aglMod}(AGL) = {totalAttack} vs AC {targetAC}");
+        Console.WriteLine($"  -> Roll: {attackRoll} + {attacker.ProficiencyBonus}(Prof) + {aglMod}(AGL) + {proficiencyBonus}(Skill) = {totalAttack} vs AC {targetAC}");
 
         if (attackRoll == 20 || totalAttack >= targetAC)
         {

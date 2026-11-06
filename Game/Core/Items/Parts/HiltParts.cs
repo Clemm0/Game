@@ -9,6 +9,7 @@ public class HiltPart : ItemPart
         Name = "Hilt";
         Material = material;
         MaterialUnits = 1;
+        Type = PartType.Hilt;
     }
 
     public override bool Fits(Item host) => host is Types.Weapon;

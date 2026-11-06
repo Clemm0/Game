@@ -9,6 +9,7 @@ public class IronMaterial : Material
         Name = "Iron";
         WeightPerUnit = 2.5f;
         Rarity = Rarity.Common;
+        Type = MaterialType.Iron;
         Traits.AddRange(new[]
         {
             MaterialTrait.Of(MaterialTraitKind.DurabilityBonus, 0.10f),

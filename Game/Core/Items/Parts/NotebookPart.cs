@@ -9,6 +9,7 @@ public class NotebookPart : ItemPart
         Name = "Notebook Pages";
         Material = material;
         MaterialUnits = 1;
+        Type = PartType.Notebook;
     }
 
     public override bool Fits(Item host) => host is Types.Weapon;

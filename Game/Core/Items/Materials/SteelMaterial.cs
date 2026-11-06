@@ -7,6 +7,7 @@ public class SteelMaterial : Material
         Name = "Steel";
         WeightPerUnit = 2.2f;
         Rarity = Rarity.Uncommon;
+        Type = MaterialType.Steel;
         Traits.AddRange(new[]
         {
             MaterialTrait.Of(MaterialTraitKind.DamageBonus,      0.15f),

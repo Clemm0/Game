@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Core.Items;
@@ -33,16 +34,27 @@ public class Inventory
     {
         UpdateLockStatus();
 
-        if (_isPickupLocked)
+        if (_isPickupLocked) return false;
+        if (CurrentWeight + item.Weight > MaxCapacity) return false;
+        
+        if (item is Game.Core.Items.Types.Consumable consumable)
         {
-            return false; 
+            var existingStack = _items.Find(i => i.Name == item.Name && i is Game.Core.Items.Types.Consumable c && c.StackSize < c.MaxStackSize) 
+                                as Game.Core.Items.Types.Consumable;
+            
+            if (existingStack != null)
+            {
+                int availableSpace = existingStack.MaxStackSize - existingStack.StackSize;
+                int amountToAdd = Math.Min(availableSpace, consumable.StackSize);
+                
+                existingStack.StackSize += amountToAdd;
+                consumable.StackSize -= amountToAdd;
+                
+                if (consumable.StackSize > 0) _items.Add(consumable);
+                return true;
+            }
         }
 
-       if (CurrentWeight + item.Weight > MaxCapacity)
-        {
-            return false;
-        }
-        
         _items.Add(item);
         UpdateLockStatus();
         return true;

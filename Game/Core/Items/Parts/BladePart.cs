@@ -8,6 +8,7 @@ public class BladePart : ItemPart
     {
         Name = "Blade";
         Material = material;
+        Type = PartType.Blade;
     }
 
     public override bool Fits(Item host) => host is Types.Weapon;

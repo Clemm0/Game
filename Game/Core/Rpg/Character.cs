@@ -15,15 +15,20 @@ public abstract class Character : GenericEntity
     public EquipmentManager Equipment { get; } = new();
     public Game.Core.Inventory.Inventory Inventory { get; } = new();
 
+    public int Level { get; set; } = 1;
+    public int Experience { get; set; } = 0;
+    public int ExperienceToNextLevel => Level * 100;
+    
+    public int AvailableSpecialPoints { get; set; } = 0;
+    public int AvailablePerkPoints { get; set; } = 0;
+
+    public HashSet<string> Proficiencies { get; } = new();
+
+    public int ProficiencyBonus => 2 + ((Level - 1) / 4);
+
     public float Health { get; set; }
     public float Mana { get; set; }
     public float Stamina { get; set; }
-
-    public int Level { get; set; } = 1;
-    public int Experience { get; set; } = 0;
-    
-    public int ProficiencyBonus => 2 + ((Level - 1) / 4);
-    public HashSet<string> Proficiencies { get; } = new();
 
     public override void Update(float deltaTime)
     {
@@ -36,6 +41,57 @@ public abstract class Character : GenericEntity
         Health = Math.Min(Health + (hpRegen * deltaTime), stats.Health.Effective);
         Mana = Math.Min(Mana + (mpRegen * deltaTime), stats.Mana.Effective);
         Stamina = Math.Min(Stamina + (spRegen * deltaTime), stats.Stamina.Effective);
+    }
+
+    public int GainExperience(int amount)
+    {
+        Experience += amount;
+        int levelsGained = 0;
+        
+        while (Experience >= ExperienceToNextLevel)
+        {
+            Experience -= ExperienceToNextLevel;
+            Level++;
+            levelsGained++;
+            
+            AvailablePerkPoints += 1;
+            
+            if (Level % 5 == 0)
+            {
+                AvailableSpecialPoints += 1;
+                Console.WriteLine($"*** {Name} reached Level {Level}! (Gained 1 Perk Point, 1 SPECIAL Point) ***");
+            }
+            else
+            {
+                Console.WriteLine($"*** {Name} reached Level {Level}! (Gained 1 Perk Point) ***");
+            }
+            
+            Health = GetEffectiveStats().Health.Effective;
+        }
+        
+        return levelsGained;
+    }
+
+    public bool AllocateSpecialPoint(PrimaryStat stat)
+    {
+        if (AvailableSpecialPoints <= 0) return false;
+        BaseStats.Primary[stat].BaseValue += 1f;
+        AvailableSpecialPoints--;
+        Console.WriteLine($"  -> {stat} increased to {BaseStats.Primary[stat].Effective}!");
+        return true;
+    }
+
+    public bool AllocatePerkPoint(string proficiency)
+    {
+        if (AvailablePerkPoints <= 0) return false;
+        if (!Proficiencies.Contains(proficiency)) Proficiencies.Add(proficiency);
+        
+        BaseStats.Skills.TryGetValue(proficiency, out int current);
+        BaseStats.Skills[proficiency] = current + 1;
+        
+        AvailablePerkPoints--;
+        Console.WriteLine($"  -> {proficiency} proficiency increased to {BaseStats.Skills[proficiency]}!");
+        return true;
     }
 
     public StatBlock GetEffectiveStats()
@@ -68,7 +124,7 @@ public abstract class Character : GenericEntity
                 effective.Primary[kvp.Key].BaseValue += kvp.Value.Effective;
         }
 
-                var setPieces = new Dictionary<string, int>();
+        var setPieces = new Dictionary<string, int>();
         foreach (var item in Equipment.EquippedItems.Values)
         {
             if (item is ArmorPiece piece)
