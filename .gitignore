@@ -1,0 +1,16 @@
+# Godot
+.godot/
+
+# .NET
+bin/
+obj/
+*.user
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
