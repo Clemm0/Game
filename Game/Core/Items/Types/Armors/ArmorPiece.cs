@@ -1,3 +1,4 @@
+using System;
 using Game.Core.Items.Materials;
 using Game.Core.Items.Parts;
 using Game.Core.Rpg;
@@ -15,15 +16,13 @@ public abstract class ArmorPiece : Armor
         var mult = RarityTable.Data[Rarity].MainStatMultiplier * Quality;
         
         float totalDefense = BaseDefense;
-        
         foreach (var slot in Composition.Slots)
         {
-            if (slot.Part is PlatePart)
-            {
-                totalDefense += 2f;
-            }
+            if (slot.Part is PlatePart) totalDefense += 1.5f; 
         }
 
+        totalDefense = Math.Min(totalDefense, 40f);
+        
         stats.Defense.BaseValue = totalDefense * mult;
         return ItemAggregator.Apply(this, stats);
     }

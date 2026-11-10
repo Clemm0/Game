@@ -30,6 +30,8 @@ public abstract class Character : GenericEntity
     public float Mana { get; set; }
     public float Stamina { get; set; }
 
+    public bool IsTaunting { get; set; } = false;
+
     public override void Update(float deltaTime)
     {
         var stats = GetEffectiveStats();
@@ -55,18 +57,10 @@ public abstract class Character : GenericEntity
             levelsGained++;
             
             AvailablePerkPoints += 1;
-            
-            if (Level % 5 == 0)
-            {
-                AvailableSpecialPoints += 1;
-                Console.WriteLine($"*** {Name} reached Level {Level}! (Gained 1 Perk Point, 1 SPECIAL Point) ***");
-            }
-            else
-            {
-                Console.WriteLine($"*** {Name} reached Level {Level}! (Gained 1 Perk Point) ***");
-            }
+            if (Level % 5 == 0) AvailableSpecialPoints += 1;
             
             Health = GetEffectiveStats().Health.Effective;
+            Console.WriteLine($"  {Name} reached Level {Level}! (+1 Perk Point{(Level % 5 == 0 ? ", +1 SPECIAL Point" : "")})");
         }
         
         return levelsGained;
@@ -77,7 +71,6 @@ public abstract class Character : GenericEntity
         if (AvailableSpecialPoints <= 0) return false;
         BaseStats.Primary[stat].BaseValue += 1f;
         AvailableSpecialPoints--;
-        Console.WriteLine($"  -> {stat} increased to {BaseStats.Primary[stat].Effective}!");
         return true;
     }
 
@@ -85,12 +78,9 @@ public abstract class Character : GenericEntity
     {
         if (AvailablePerkPoints <= 0) return false;
         if (!Proficiencies.Contains(proficiency)) Proficiencies.Add(proficiency);
-        
         BaseStats.Skills.TryGetValue(proficiency, out int current);
         BaseStats.Skills[proficiency] = current + 1;
-        
         AvailablePerkPoints--;
-        Console.WriteLine($"  -> {proficiency} proficiency increased to {BaseStats.Skills[proficiency]}!");
         return true;
     }
 
@@ -145,6 +135,12 @@ public abstract class Character : GenericEntity
                 effective.MoveSpeed.PercentBonus += bonus.MoveSpeed.PercentBonus;
                 effective.AttackPower.BaseValue += bonus.AttackPower.Effective;
             }
+        }
+
+        if (effective.Defense.Effective > 20f)
+        {
+            float excess = effective.Defense.Effective - 20f;
+            effective.Defense.BaseValue = 20f + (excess * 0.25f);
         }
 
         return effective;

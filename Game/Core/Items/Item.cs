@@ -12,7 +12,7 @@ public abstract class Item
     public string Id { get; protected set; }
     
     public string TemplateId { get; internal set; } = string.Empty;
-    public string Name { get; internal set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public Rarity Rarity { get; internal set; } = Rarity.Common;
     public float Quality { get; internal set; }
     public ItemModifier Modifier { get; internal set; } = ItemModifier.Used;

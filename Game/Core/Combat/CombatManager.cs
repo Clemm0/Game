@@ -1,117 +1,247 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Game.Core.Items.Types;
+using Game.Core.Items.Types.Consumables;
 using Game.Core.Rpg;
 using Game.Core.Rpg.Equipment;
-using Game.Core.Items.Types;
 
 namespace Game.Core.Combat;
 
 public class CombatManager
 {
-    private readonly Character _player;
-    private readonly Character _enemy;
-    
-    public CombatManager(Character player, Character enemy)
+    private readonly List<Character> _players;
+    private readonly List<Character> _enemies;
+    private readonly bool _autoBattle;
+    private readonly ICombatInterface _ui;
+
+    public CombatManager(List<Character> players, List<Character> enemies, bool autoBattle = false, ICombatInterface? ui = null)
     {
-        _player = player;
-        _enemy = enemy;
+        _players = players;
+        _enemies = enemies;
+        _autoBattle = autoBattle;
+        _ui = ui ?? new ConsoleCombatInterface();
     }
 
-    public void StartCombat()
+    public async Task StartCombatAsync()
     {
-        Console.WriteLine($"\n=== Combat Started: {_player.Name} vs {_enemy.Name} ===");
-        
-        while (_player.Health > 0 && _enemy.Health > 0)
-        {
-            foreach (var skill in _player.Class.Skills) skill.Tick(2.0f);
-            foreach (var skill in _enemy.Class.Skills) skill.Tick(2.0f);
+        _ui.Log($"\n=== Combat: {string.Join(", ", _players.Select(p => p.Name))} vs {string.Join(", ", _enemies.Select(e => e.Name))} ===");
+        if (_autoBattle) _ui.Log("  [Auto-Battle enabled]");
 
-            PlayerTurn();
-            if (_enemy.Health <= 0) break;
-            
-            EnemyTurn();
+        while (_players.Any(p => p.Health > 0) && _enemies.Any(e => e.Health > 0))
+        {
+            foreach (var player in _players.Where(p => p.Health > 0).ToList())
+            {
+                if (!_enemies.Any(e => e.Health > 0)) break;
+                if (_autoBattle) AutoPlayerTurn(player);
+                else await PlayerTurnAsync(player);
+                foreach (var skill in player.Class.Skills) skill.TickTurn();
+            }
+
+            foreach (var enemy in _enemies.Where(e => e.Health > 0).ToList())
+            {
+                if (!_players.Any(p => p.Health > 0)) break;
+                EnemyTurn(enemy);
+            }
+
+            foreach (var p in _players) p.IsTaunting = false;
         }
 
-        Console.WriteLine(_player.Health > 0 ? $"*** {_player.Name} Wins! ***" : $"*** {_enemy.Name} Wins! ***");
+        bool playersWin = _players.Any(p => p.Health > 0);
+        _ui.Log(playersWin ? "*** The Party Wins! ***" : "*** The Party has fallen... ***");
+
+        if (playersWin)
+        {
+            int totalXp = _enemies.OfType<Game.Core.Npcs.Monster>().Sum(m => m.ExperienceReward);
+            if (totalXp > 0)
+            {
+                _ui.Log($"\n  Party gained {totalXp} XP each!");
+                foreach (var p in _players.Where(p => p.Health > 0))
+                    p.GainExperience(totalXp);
+            }
+        }
     }
 
-    private void PlayerTurn()
+    private async Task PlayerTurnAsync(Character player)
     {
-        Console.WriteLine($"\n{_player.Name}'s Turn (HP: {_player.Health:F1})");
+        _ui.Log($"\n--- {player.Name}'s Turn (HP: {player.Health:F0}) ---");
+        _ui.Log("  Actions:");
+        _ui.Log("    [A]ttack");
+        if (player.Class.Skills.Any(s => s.IsReady)) _ui.Log("    [S]kill");
+        if (player.Inventory.Items.Any(i => i is HealthPotion p && p.StackSize > 0)) _ui.Log("    [P]otion");
+        if (player.Class.Skills.Any(s => s.Name == "Taunt" && s.IsReady)) _ui.Log("    [T]aunt");
 
-        var stats = _player.GetEffectiveStats();
-        if (_player.Health < stats.Health.Effective * 0.5f)
+        string choice = (await _ui.PromptAsync("  > ")).Trim().ToUpper();
+        switch (choice)
         {
-            var potion = _player.Inventory.Items
-                .FirstOrDefault(i => i is Game.Core.Items.Types.Consumables.HealthPotion p && p.StackSize > 0) 
-                as Game.Core.Items.Types.Consumables.HealthPotion;
-            
-            if (potion != null)
+            case "A": await AttackActionAsync(player); break;
+            case "S": await SkillActionAsync(player); break;
+            case "P": PotionAction(player); break;
+            case "T": TauntAction(player); break;
+            default:
+                _ui.Log("  Invalid choice.");
+                await PlayerTurnAsync(player);
+                break;
+        }
+    }
+
+    private void AutoPlayerTurn(Character player)
+    {
+        _ui.Log($"\n--- {player.Name}'s Turn (HP: {player.Health:F0}) [Auto] ---");
+
+        var stats = player.GetEffectiveStats();
+        if (player.Health / stats.Health.Effective < 0.60f)
+        {
+            var heal = player.Class.Skills.FirstOrDefault(s => s.Name == "Heal" && s.IsReady);
+            if (heal != null)
             {
-                potion.Use(_player);
-                if (potion.StackSize <= 0) _player.Inventory.TryRemoveItem(potion);
+                var target = _players.Where(p => p.Health > 0).OrderBy(p => p.Health / p.GetEffectiveStats().Health.Effective).First();
+                heal.Activate(player, target);
                 return;
             }
         }
 
-        var usableSkill = _player.Class.Skills.FirstOrDefault(s => s.IsReady);
-        if (usableSkill != null)
+        var readySkill = player.Class.Skills.FirstOrDefault(s => s.IsReady && s.Name != "Heal");
+        if (readySkill != null && _enemies.Any(e => e.Health > 0))
         {
-            usableSkill.Activate(_player, _enemy);
+            readySkill.Activate(player, _enemies.First(e => e.Health > 0));
             return;
         }
 
-        Console.WriteLine("  *No skills ready, basic attack!*");
-        _player.Equipment.EquippedItems.TryGetValue(EquipmentSlot.MainHand, out var equippedItem);
-        var weapon = equippedItem as Weapon;
-        Attack(_player, _enemy, 1, 8, weapon?.Name ?? "Fists");
-    }
-
-    private void EnemyTurn()
-    {
-        Console.WriteLine($"{_enemy.Name}'s Turn (HP: {_enemy.Health:F1})");
-        Attack(_enemy, _player, 1, 6, "Claws"); 
-    }
-
-    private void Attack(Character attacker, Character defender, int diceCount, int diceSides, string attackName)
-    {
-        var attackerStats = attacker.GetEffectiveStats();
-        var defenderStats = defender.GetEffectiveStats();
-
-        int attackRoll = Dice.RollD20();
-        int aglMod = (int)attackerStats.Primary[PrimaryStat.AGL].Effective;
-        
-        int proficiencyBonus = 0;
-        if (attacker.Proficiencies.Contains(attackName) && attacker.BaseStats.Skills.TryGetValue(attackName, out int skillLevel))
+        var enemy = _enemies.FirstOrDefault(e => e.Health > 0);
+        if (enemy != null)
         {
-            proficiencyBonus = skillLevel;
+            player.Equipment.EquippedItems.TryGetValue(EquipmentSlot.MainHand, out var equipped);
+            var weapon = equipped as Weapon;
+            string weaponName = weapon?.Name ?? "Fists";
+            float mult = 1f;
+            if (weapon != null && !player.Class.PreferredWeapons.Contains(weapon.GetType().Name))
+            {
+                mult = 0.75f;
+                _ui.Log($"  *{player.Name} swings the {weaponName} awkwardly (-25% damage)*");
+            }
+            BasicAttack(player, enemy, weaponName, mult);
+        }
+    }
+
+    private async Task AttackActionAsync(Character player)
+    {
+        var enemies = _enemies.Where(e => e.Health > 0).ToList();
+        var target = await _ui.PickTargetAsync(enemies, "Target which enemy?");
+        if (target == null) { await PlayerTurnAsync(player); return; }
+
+        player.Equipment.EquippedItems.TryGetValue(EquipmentSlot.MainHand, out var equipped);
+        var weapon = equipped as Weapon;
+        string weaponName = weapon?.Name ?? "Fists";
+
+        float affinityMult = 1f;
+        if (weapon != null && !player.Class.PreferredWeapons.Contains(weapon.GetType().Name))
+        {
+            affinityMult = 0.75f;
+            _ui.Log($"  *{player.Name} swings the {weaponName} awkwardly (-25% damage)*");
         }
 
-        int totalAttack = attackRoll + attacker.ProficiencyBonus + aglMod + proficiencyBonus;
-        int targetAC = (int)defenderStats.Defense.Effective;
+        BasicAttack(player, target, weaponName, affinityMult);
+    }
 
-        Console.WriteLine($"  -> Roll: {attackRoll} + {attacker.ProficiencyBonus}(Prof) + {aglMod}(AGL) + {proficiencyBonus}(Skill) = {totalAttack} vs AC {targetAC}");
-
-        if (attackRoll == 20 || totalAttack >= targetAC)
+    private async Task SkillActionAsync(Character player)
+    {
+        var readySkills = player.Class.Skills.Where(s => s.IsReady).ToList();
+        if (readySkills.Count == 0)
         {
-            int damage = Dice.Roll(diceCount, diceSides);
-            damage += (int)attackerStats.Primary[PrimaryStat.STR].Effective;
-            
-            int critThreshold = 20 - (int)attackerStats.Primary[PrimaryStat.LUC].Effective;
-            if (critThreshold < 15) critThreshold = 15;
+            _ui.Log("  No skills ready.");
+            await PlayerTurnAsync(player);
+            return;
+        }
 
-            if (attackRoll >= critThreshold)
-            {
-                Console.WriteLine($"  -> CRITICAL HIT! (Rolled {attackRoll}, needed {critThreshold} due to Luck)");
-                damage += Dice.Roll(diceCount, diceSides);
-            }
+        var skill = await _ui.PickSkillAsync(readySkills);
+        if (skill == null) { await PlayerTurnAsync(player); return; }
 
-            defender.Health -= damage;
-            Console.WriteLine($"  -> Hits {defender.Name} for {damage} damage! (Remaining HP: {Math.Max(0, defender.Health)})");
+        Character? target;
+        if (skill.Name == "Heal")
+        {
+            var wounded = _players.Where(p => p.Health > 0).ToList();
+            target = await _ui.PickTargetAsync(wounded, "Heal which ally?");
         }
         else
         {
-            Console.WriteLine($"  -> Misses {defender.Name}!");
+            target = await _ui.PickTargetAsync(_enemies.Where(e => e.Health > 0).ToList(), "Target which enemy?");
+        }
+
+        if (target != null) skill.Activate(player, target);
+        else await PlayerTurnAsync(player);
+    }
+
+    private void PotionAction(Character player)
+    {
+        var potion = player.Inventory.Items
+            .FirstOrDefault(i => i is HealthPotion p && p.StackSize > 0) as HealthPotion;
+        if (potion == null)
+        {
+            _ui.Log("  No potions left.");
+            return;
+        }
+        potion.Use(player);
+        if (potion.StackSize <= 0) player.Inventory.TryRemoveItem(potion);
+    }
+
+    private void TauntAction(Character player)
+    {
+        var taunt = player.Class.Skills.FirstOrDefault(s => s.Name == "Taunt" && s.IsReady);
+        if (taunt == null)
+        {
+            _ui.Log("  No taunt ready.");
+            return;
+        }
+        taunt.Activate(player, _enemies.First(e => e.Health > 0));
+    }
+
+    private void EnemyTurn(Character enemy)
+    {
+        var taunter = _players.FirstOrDefault(p => p.Health > 0 && p.IsTaunting);
+        Character? target = taunter ?? _players.Where(p => p.Health > 0).OrderBy(_ => Guid.NewGuid()).FirstOrDefault();
+
+        if (target == null) return;
+        _ui.Log($"\n--- {enemy.Name}'s Turn (HP: {enemy.Health:F0}){(taunter != null ? $" [Taunted → {taunter.Name}]" : "")} ---");
+        BasicAttack(enemy, target, "Claws", 1f);
+    }
+
+    private void BasicAttack(Character attacker, Character defender, string weaponName, float affinityMult)
+    {
+        var atkStats = attacker.GetEffectiveStats();
+        var defStats = defender.GetEffectiveStats();
+
+        int roll = Dice.RollD20();
+        int aglMod = (int)atkStats.Primary[PrimaryStat.AGL].Effective;
+        int profBonus = 0;
+        if (attacker.BaseStats.Skills.TryGetValue(weaponName, out int lvl)) profBonus = lvl;
+
+        int total = roll + attacker.ProficiencyBonus + aglMod + profBonus;
+        int targetAC = (int)defStats.Defense.Effective;
+
+        _ui.Log($"  Roll: {roll} + {attacker.ProficiencyBonus}(Prof) + {aglMod}(AGL) + {profBonus}(Skill) = {total} vs AC {targetAC}");
+
+        if (roll == 20 || total >= targetAC)
+        {
+            int dmg = Dice.Roll(1, 8) + (int)atkStats.Primary[PrimaryStat.STR].Effective;
+
+            int critThreshold = 20 - (int)atkStats.Primary[PrimaryStat.LUC].Effective;
+            if (critThreshold < 15) critThreshold = 15;
+            if (roll >= critThreshold)
+            {
+                _ui.Log("  -> CRITICAL HIT!");
+                dmg += Dice.Roll(1, 8);
+            }
+
+            dmg = Math.Max(1, (int)(dmg * affinityMult));
+
+            defender.Health -= dmg;
+            _ui.Log($"  -> Hits {defender.Name} for {dmg} damage! (HP: {Math.Max(0, defender.Health):F0})");
+        }
+        else
+        {
+            _ui.Log($"  -> Misses {defender.Name}!");
         }
     }
 }

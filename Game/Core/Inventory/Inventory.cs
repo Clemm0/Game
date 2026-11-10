@@ -63,42 +63,41 @@ public class Inventory
     public bool TryRemoveItem(Item item)
     {
         bool removed = _items.Remove(item);
-        if (removed)
-        {
-            UpdateLockStatus();
-        }
+        if (removed) UpdateLockStatus();
         return removed;
+    }
+
+    public bool TryTransferItem(Item item, Character target)
+    {
+        if (!TryRemoveItem(item)) return false;
+        
+        if (target.Inventory.TryAddItem(item))
+        {
+            Console.WriteLine($"  {item.Name} transferred.");
+            return true;
+        }
+        
+        _items.Add(item);
+        Console.WriteLine($"  {target.Name}'s inventory is full — transfer failed.");
+        return false;
     }
 
     public void UpdateLockStatus()
     {
         float ratio = CurrentWeight / MaxCapacity;
 
-        if (ratio >= 1.0f)
-        {
-            _isPickupLocked = true;
-        }
-        else if (ratio <= 0.99f)
-        {
-            _isPickupLocked = false;
-        }
+        if (ratio >= 1.0f) _isPickupLocked = true;
+        else if (ratio <= 0.99f) _isPickupLocked = false;
     }
 
     public void ApplyEncumbrancePenalties(Character character, StatBlock effectiveStats)
     {
         switch (State)
         {
-            case EncumbranceState.Free:
-                break;
-            case EncumbranceState.Stacked:
-                effectiveStats.MoveSpeed.PercentBonus -= 0.05f; 
-                break;
-            case EncumbranceState.LightlyOver:
-                effectiveStats.MoveSpeed.PercentBonus -= 0.25f; 
-                break;
-            case EncumbranceState.Overencumbered:
-                effectiveStats.MoveSpeed.PercentBonus -= 0.50f; 
-                break;
+            case EncumbranceState.Free: break;
+            case EncumbranceState.Stacked: effectiveStats.MoveSpeed.PercentBonus -= 0.05f; break;
+            case EncumbranceState.LightlyOver: effectiveStats.MoveSpeed.PercentBonus -= 0.25f; break;
+            case EncumbranceState.Overencumbered: effectiveStats.MoveSpeed.PercentBonus -= 0.50f; break;
         }
     }
 }
